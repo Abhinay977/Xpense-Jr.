@@ -5,6 +5,7 @@
 
 /* ── Design Tokens ── */
 :root {
+  color-scheme: dark;
   --bg:      #070b14;
   --surf:    #0d1220;
   --card:    #111827;
@@ -584,6 +585,7 @@ footer strong { color:var(--accent); }
    Applied when <html data-theme="light">
 ══════════════════════════════════════════ */
 [data-theme="light"] {
+  color-scheme: light;
   --bg:      #eef2ff;
   --surf:    #f8faff;
   --card:    #ffffff;
@@ -605,8 +607,8 @@ footer strong { color:var(--accent); }
 
 /* ── Brand name gradient (keep readable on light) ── */
 [data-theme="light"] .brand-name {
-  background: linear-gradient(90deg, #1e293b 30%, var(--accent));
-  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  background: none;
+  -webkit-text-fill-color: #1e293b; color: #1e293b;
 }
 
 /* ── Day cells ── */
