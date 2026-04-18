@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CredWise Kids – Daily Finance Tracker</title>
+  <meta name="description" content="CredWise Kids auto-tracks daily pocket money (weekdays only), relatives income, savings & expenses on a yearly calendar for students under 18." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- ★ CSS file link ★ -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Aurora background ── -->
+<div class="aurora"><span></span><span></span><span></span></div>
+
+<!-- ── Toast notification ── -->
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════════
+     MODAL — Day Entry
+════════════════════════════════════════ -->
+<div class="modal-ov" id="modalOv" onclick="ovClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-title" id="modalTitle">📅 Day Entry</div>
+        <div class="modal-date" id="modalDateLbl"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <!-- Weekend notice (visible only on Sat/Sun) -->
+    <div class="weekend-banner hidden" id="weekendBanner">
+      <span>🏖️</span>
+      <div>Weekend — <strong>Pocket Money excluded</strong> (only Relatives/Work income applies today)</div>
+    </div>
+
+    <!-- INCOME FIELDS -->
+    <div class="mfield">
+      <label>💰 Income today</label>
+      <div class="mfield-row">
+        <div class="inp-w">
+          <span class="pfx">₹</span>
+          <input class="mi" type="number" id="mPocket" placeholder="Pocket money (weekdays)" min="0" />
+        </div>
+        <div class="inp-w">
+          <span class="pfx">₹</span>
+          <input class="mi" type="number" id="mRelatives" placeholder="Relatives (occasional)" min="0" />
+        </div>
+      </div>
+      <div class="inp-w" style="margin-top:9px;">
+        <span class="pfx">₹</span>
+        <input class="mi" type="number" id="mWork" placeholder="Tutor / Work income (occasional)" min="0" />
+      </div>
+    </div>
+
+    <!-- EXPENSE FIELDS -->
+    <div class="mfield">
+      <label>💸 Expenses today</label>
+      <div class="mfield-row">
+        <div class="inp-w">
+          <span class="pfx">₹</span>
+          <input class="mi" type="number" id="mSnacks" placeholder="Snacks / daily" min="0" />
+        </div>
+        <div class="inp-w">
+          <span class="pfx">₹</span>
+          <input class="mi" type="number" id="mRecharge" placeholder="Monthly recharge" min="0" />
+        </div>
+      </div>
+      <div class="inp-w" style="margin-top:9px;">
+        <span class="pfx">₹</span>
+        <input class="mi" type="number" id="mTrips" placeholder="Holiday trips / fun" min="0" />
+      </div>
+    </div>
+
+    <!-- SAVINGS FIELDS -->
+    <div class="mfield">
+      <label>🏦 Saved today (from pocket money + relatives)</label>
+      <div class="mfield-row">
+        <div class="inp-w">
+          <span class="pfx">₹</span>
+          <input class="mi" type="number" id="mSavPocket" placeholder="From pocket money" min="0" />
+        </div>
+        <div class="inp-w">
+          <span class="pfx">₹</span>
+          <input class="mi" type="number" id="mSavRelatives" placeholder="From relatives money" min="0" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Live financial preview -->
+    <div class="day-prev" id="dayPrev">Enter amounts above to preview today's financial health.</div>
+
+    <!-- Action buttons -->
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveDay()">💾 Save Day</button>
+      <button class="btn-clr"  onclick="clearDay()">🗑 Clear</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     MAIN APP WRAPPER
+════════════════════════════════════════ -->
+<div class="wrap">
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <div class="brand">
+      <div class="brand-logo">🎓</div>
+      <div>
+        <div class="brand-name">CredWise Kids</div>
+        <div class="brand-sub">Daily Finance Tracker · Under 18</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="live-badge">
+        <div class="live-dot"></div>Auto Score Live
+      </div>
+      <div class="yr-selector">
+        <button onclick="chgYear(-1)">◀</button>
+        <span class="yr-val" id="yrVal">2026</span>
+        <button onclick="chgYear(1)">▶</button>
+      </div>
+      <div class="nav-pill">🏆 Hackathon</div>
+    </div>
+  </nav>
+
+  <!-- ── Hero Section ── -->
+  <section class="hero">
+    <div class="hero-badge">✦ Daily Records · Auto Score · No PAN Required</div>
+    <h1><span class="gb">Daily Habits</span> Build<br>Your <span class="gp">Credit Score</span></h1>
+    <p>Click any day to log your money. Score <strong>auto-calculates</strong> as you go — no manual button needed.</p>
+    <div class="hero-rules">
+      <div class="rule-pill wd">✅ Mon–Fri: Pocket Money allowed</div>
+      <div class="rule-pill we">🏖️ Sat–Sun: Pocket Money excluded</div>
+      <div class="rule-pill occ">💜 Relatives / Work: Any day (occasional)</div>
+    </div>
+  </section>
+
+  <!-- ── Real-time Stats Bar ── -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-lbl">📅 Days Logged</div>
+      <div class="stat-val sv-b" id="stLogged">0</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-lbl">💵 Total Income</div>
+      <div class="stat-val sv-g" id="stIncome">₹0</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-lbl">💸 Total Expenses</div>
+      <div class="stat-val sv-a" id="stExpenses">₹0</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-lbl">🏦 Total Savings</div>
+      <div class="stat-val sv-g" id="stSavings">₹0</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-lbl">📊 Saving Days</div>
+      <div class="stat-val sv-b" id="stSavDays">0</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-lbl">🏖️ Weekend Days</div>
+      <div class="stat-val sv-o" id="stWeDays">0</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-lbl">⚠️ Overspend</div>
+      <div class="stat-val sv-r" id="stOverDays">0</div>
+    </div>
+  </div>
+
+  <!-- ── Main Tabs ── -->
+  <div class="main-tabs">
+    <button class="mtab active" id="tab-cal"      onclick="switchTab('cal')">🗓 Calendar</button>
+    <button class="mtab"        id="tab-history"  onclick="switchTab('history')">📋 Transaction History</button>
+    <button class="mtab"        id="tab-analysis" onclick="switchTab('analysis')">📊 Monthly Analysis</button>
+  </div>
+
+  <!-- ════ TAB 1: CALENDAR ════ -->
+  <div class="tab-pane show" id="tp-cal">
+    <div class="main-layout">
+
+      <!-- 12-Month Calendar Grid -->
+      <div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+
+      <!-- Auto Credit Score Sidebar -->
+      <div class="score-sidebar">
+        <div class="card">
+          <div class="score-header-lbl" style="margin-bottom:14px;">Auto Credit Score</div>
+          <div class="score-panel-inner">
+
+            <!-- Placeholder before first data entry -->
+            <div class="score-ph" id="scorePh">
+              <div class="ph-icon">📊</div>
+              <p style="font-size:.84rem;line-height:1.7;">
+                Log your first day —<br>score appears automatically!
+              </p>
+            </div>
+
+            <!-- Score output (hidden until data exists) -->
+            <div id="scoreOut" class="hidden" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;">
+              <!-- Gauge canvas -->
+              <div class="gauge-wrap">
+                <canvas id="gaugeC" width="220" height="126"></canvas>
+                <div class="gauge-center">
+                  <div class="gauge-num" id="gNum">—</div>
+                  <div class="gauge-lbl" id="gLbl">—</div>
+                </div>
+              </div>
+
+              <!-- Range bar -->
+              <div class="range-track">
+                <div class="range-thumb" id="rThumb"></div>
+              </div>
+              <div class="range-labels">
+                <span style="color:var(--poor)">300</span>
+                <span style="color:var(--avg)">500</span>
+                <span style="color:var(--good)">700</span>
+                <span style="color:#38bdf8">900</span>
+              </div>
+
+              <!-- Score breakdown bars -->
+              <div class="breakdown">
+                <h4>Score Breakdown</h4>
+                <div class="bar-row">
+                  <span class="bar-name">💰 Savings</span>
+                  <div class="bar-track"><div class="bar-fill" id="bSav" style="background:var(--good)"></div></div>
+                  <span class="bar-num" id="nSav" style="color:var(--good)">—</span>
+                </div>
+                <div class="bar-row">
+                  <span class="bar-name">🎛 Control</span>
+                  <div class="bar-track"><div class="bar-fill" id="bCtl" style="background:var(--accent)"></div></div>
+                  <span class="bar-num" id="nCtl" style="color:var(--accent)">—</span>
+                </div>
+                <div class="bar-row">
+                  <span class="bar-name">📅 Discipline</span>
+                  <div class="bar-track"><div class="bar-fill" id="bDsc" style="background:var(--purple)"></div></div>
+                  <span class="bar-num" id="nDsc" style="color:var(--purple)">—</span>
+                </div>
+              </div>
+
+              <!-- Achievement badges -->
+              <div class="badges-row" id="bdgRow">
+                <div class="badge" id="bdg-saver"  style="--bc:#10b981">🌱 Saver</div>
+                <div class="badge" id="bdg-ctrl"   style="--bc:#3b82f6">🎛 Master</div>
+                <div class="badge" id="bdg-disc"   style="--bc:#8b5cf6">📅 Steady</div>
+                <div class="badge" id="bdg-elite"  style="--bc:#f59e0b">⭐ Elite</div>
+                <div class="badge" id="bdg-full"   style="--bc:#06b6d4">📆 Full Yr</div>
+              </div>
+
+              <!-- Score info line -->
+              <div style="font-size:.7rem;color:var(--muted);text-align:center;line-height:1.6;" id="scoreInfoLbl"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ TAB 2: TRANSACTION HISTORY ════ -->
+  <div class="tab-pane" id="tp-history">
+    <div class="txn-table-wrap">
+      <div class="txn-toolbar">
+        <h3>📋 Transaction History — <span id="yrVal2">2026</span></h3>
+        <div class="txn-filters">
+          <button class="txn-filter active" data-f="all"  onclick="filterTxn('all')">All</button>
+          <button class="txn-filter"        data-f="good" onclick="filterTxn('good')">✅ Saved</button>
+          <button class="txn-filter"        data-f="poor" onclick="filterTxn('poor')">⚠️ Overspent</button>
+          <button class="txn-filter"        data-f="we"   onclick="filterTxn('we')">🏖 Weekends</button>
+        </div>
+        <div class="txn-count" id="txnCount">0 entries</div>
+      </div>
+      <div style="overflow-x:auto; max-height:600px; overflow-y:auto;">
+        <table class="txn-table" id="txnTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Day Type</th>
+              <th>Income</th>
+              <th>Expenses</th>
+              <th>Savings</th>
+              <th>Net</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="txnBody">
+            <tr><td colspan="7" class="txn-empty">No transactions logged yet. Click any day on the Calendar tab!</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ TAB 3: MONTHLY ANALYSIS ════ -->
+  <div class="tab-pane" id="tp-analysis">
+    <div class="analysis-grid" id="analysisGrid"></div>
+  </div>
+
+  <!-- ════ BOTTOM GRID: Tips · Compare · Level ════ -->
+  <div class="bottom-grid" style="margin-top:22px;">
+
+    <!-- Smart Tips -->
+    <div class="card">
+      <div class="sec-title">💡 Smart Tips</div>
+      <div id="sugList" style="display:flex;flex-direction:column;gap:9px;">
+        <div class="sug-item">
+          <span class="sug-icon">🎯</span>
+          <span>Log your first day to see personalized financial tips!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Before vs After -->
+    <div class="card">
+      <div class="sec-title">📊 Before vs After</div>
+      <div class="cmp-grid">
+        <div class="c-box">
+          <div class="c-tag">Previous</div>
+          <div class="c-score" id="prevNum" style="color:var(--muted)">—</div>
+          <div class="c-status" id="prevSt" style="color:var(--muted)">No data</div>
+        </div>
+        <div class="c-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          <div class="c-delta eq" id="cDelta">—</div>
+        </div>
+        <div class="c-box">
+          <div class="c-tag">Current</div>
+          <div class="c-score" id="curNum" style="color:var(--muted)">—</div>
+          <div class="c-status" id="curSt" style="color:var(--muted)">Not yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Your Level -->
+    <div class="card">
+      <div class="sec-title">🎮 Your Level</div>
+      <div class="lvl-card">
+        <div class="lvl-icon" id="lvlIcon">🥚</div>
+        <div class="lvl-name" id="lvlName">Newbie</div>
+        <div class="lvl-desc" id="lvlDesc">Log data to unlock your level!</div>
+        <div class="xp-track"><div class="xp-fill" id="xpFill"></div></div>
+        <div class="xp-lbl" id="xpLbl">0 / 900 XP</div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    Built with ❤️ by <strong>CredWise Kids Team</strong> ·
+    Scores auto-calculate from daily records · For financial education only.
+  </footer>
+
+</div><!-- /.wrap -->
+
+<!-- ★ JavaScript file link ★ -->
+<script src="script.js"></script>
+
+</body>
+</html>
