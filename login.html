@@ -13,6 +13,32 @@
 
   <!-- Login page styles -->
   <link rel="stylesheet" href="login.css" />
+  <style>
+    /* ── Import Account section ── */
+    .import-section {
+      background: rgba(139,92,246,.07); border: 1px dashed rgba(139,92,246,.35);
+      border-radius: 12px; padding: 14px 16px;
+    }
+    .import-title {
+      font-size: .75rem; font-weight: 800; color: #a78bfa;
+      letter-spacing: .5px; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .import-desc {
+      font-size: .73rem; color: var(--muted); line-height: 1.6; margin-bottom: 10px;
+    }
+    .import-file-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 10px; border-radius: 9px;
+      background: rgba(139,92,246,.15); border: 1.5px solid rgba(139,92,246,.4);
+      color: #c4b5fd; font-family: inherit; font-size: .84rem; font-weight: 700;
+      cursor: pointer; transition: all .3s;
+    }
+    .import-file-btn:hover { background: rgba(139,92,246,.28); color: #fff; border-color: #a78bfa; }
+    .import-msg { font-size: .78rem; font-weight: 600; margin-top: 8px; padding: 8px 12px; border-radius: 8px; display: none; }
+    .import-msg.err  { display:block; background:rgba(239,68,68,.1);  color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
+    .import-msg.succ { display:block; background:rgba(16,185,129,.1); color:#6ee7b7; border:1px solid rgba(16,185,129,.3); }
+  </style>
 </head>
 <body>
 
@@ -118,6 +144,20 @@
 
         <div class="auth-switch">
           Don't have an account? <a onclick="showTab('reg')">Create one →</a>
+        </div>
+
+        <!-- ── Cross-device Import section ── -->
+        <div class="auth-divider">or transfer from another device</div>
+        <div class="import-section">
+          <div class="import-title">📱 → 💻 Import Account from Backup</div>
+          <div class="import-desc">
+            Registered on your phone? Export a backup there, then import it here to sync your account and all your data instantly.
+          </div>
+          <label class="import-file-btn" for="importFile">
+            📂 Select Backup File (.json)
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(this)" />
+          </label>
+          <div class="import-msg" id="importMsg"></div>
         </div>
       </form>
 
@@ -374,6 +414,41 @@ function handleReg(e) {
       showMsg('regMsg', result.msg, 'err');
     }
   }, 500);
+}
+
+/* ── Handle IMPORT from backup file ── */
+function handleImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const msg = document.getElementById('importMsg');
+  msg.className = 'import-msg';
+  msg.textContent = '';
+
+  if (!file.name.endsWith('.json')) {
+    msg.className = 'import-msg err';
+    msg.textContent = '❌ Please select a valid .json backup file.';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const result = cwImportAccount(e.target.result);
+    if (result.ok) {
+      msg.className = 'import-msg succ';
+      msg.textContent = `✅ Account "${result.user.name}" imported! Redirecting...`;
+      setTimeout(() => window.location.href = 'index.html', 1200);
+    } else {
+      msg.className = 'import-msg err';
+      msg.textContent = result.msg;
+    }
+  };
+  reader.onerror = function() {
+    msg.className = 'import-msg err';
+    msg.textContent = '❌ Failed to read the file. Please try again.';
+  };
+  reader.readAsText(file);
+  /* Reset input so same file can be selected again */
+  input.value = '';
 }
 
 /* ── Init on page load ── */

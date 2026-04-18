@@ -834,6 +834,17 @@ function persistRecords() {
   if (_session) cwSaveRecords(_session.username, records);
 }
 
+/** Export current user's full account + records as a .json backup file */
+function exportMyAccount() {
+  if (!_session) return;
+  const ok = cwExportAccount(_session.username);
+  if (ok) {
+    showToast('📦 Backup downloaded! Import it on your other device.');
+  } else {
+    showToast('⚠️ Export failed. Please try again.');
+  }
+}
+
 /* ══════════════════════════════════════════
    INITIALISATION
 ══════════════════════════════════════════ */

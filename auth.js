@@ -139,3 +139,84 @@ function cwListUsers() {
     joinedAt: u.createdAt
   }));
 }
+
+/* ══════════════════════════════════════════
+   CROSS-DEVICE TRANSFER — Export & Import
+   localStorage is browser/device-specific.
+   These functions let users move their
+   account + data between devices via a JSON
+   backup file.
+══════════════════════════════════════════ */
+
+/**
+ * Export the given user's full account + records to a .json file download.
+ * Call this on the SOURCE device (e.g. phone).
+ */
+function cwExportAccount(username) {
+  const users = cwGetUsers();
+  const user  = users[username];
+  if (!user) return false;
+
+  const backupData = {
+    version:    2,
+    app:        'xpensejr',
+    exportedAt: new Date().toISOString(),
+    user:       user,
+    records:    cwLoadRecords(username)
+  };
+
+  const json = JSON.stringify(backupData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href     = url;
+  a.download = `xpensejr_${username}_backup.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+/**
+ * Import an account + records from a JSON backup file text.
+ * Call this on the DESTINATION device (e.g. laptop).
+ * Returns { ok, user, msg }.
+ */
+function cwImportAccount(jsonText) {
+  let data;
+  try {
+    data = JSON.parse(jsonText);
+  } catch(e) {
+    return { ok: false, msg: '❌ Invalid file. Please select a valid Xpense Jr. backup (.json).' };
+  }
+
+  /* Validate backup structure */
+  if (data.app !== 'xpensejr' || !data.user || typeof data.records === 'undefined') {
+    return { ok: false, msg: '❌ This file is not a valid Xpense Jr. backup.' };
+  }
+
+  const u   = data.user;
+  const key = (u.username || '').trim().toLowerCase();
+  if (!key || !u.name || !u.password) {
+    return { ok: false, msg: '❌ Backup file is missing required user information.' };
+  }
+
+  /* Save user + records into this device's localStorage */
+  const users = cwGetUsers();
+  users[key] = u;
+  localStorage.setItem(CW_USERS_KEY, JSON.stringify(users));
+  cwSaveRecords(key, data.records || {});
+
+  /* Auto-login as this user */
+  localStorage.setItem(CW_SESSION_KEY, JSON.stringify({
+    username: key,
+    name:     u.name,
+    age:      u.age,
+    avatar:   u.avatar || '🎓',
+    loginAt:  new Date().toISOString()
+  }));
+
+  return { ok: true, user: u };
+}
