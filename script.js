@@ -151,12 +151,13 @@ function chgYear(delta) {
    TAB SWITCHING
 ══════════════════════════════════════════ */
 function switchTab(name) {
-  ['cal', 'history', 'analysis'].forEach(n => {
+  ['cal', 'history', 'analysis', 'calculator'].forEach(n => {
     document.getElementById('tab-' + n).classList.toggle('active', n === name);
-    document.getElementById('tp-' + n).classList.toggle('show', n === name);
+    document.getElementById('tp-'  + n).classList.toggle('show',   n === name);
   });
-  if (name === 'history')  renderHistory();
-  if (name === 'analysis') renderAnalysis();
+  if (name === 'history')    renderHistory();
+  if (name === 'analysis')   renderAnalysis();
+  if (name === 'calculator') initCalcTab();
 }
 
 /* ══════════════════════════════════════════
@@ -981,3 +982,270 @@ function closeCibilModalOv(e) {
 }
 
 // No demo bypass functions remain by user request.
+
+/* ══════════════════════════════════════════
+   SCORE CALCULATOR — Helper: draw mini gauge
+══════════════════════════════════════════ */
+function drawMiniGauge(canvasId, score, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H, r = 84;
+
+  /* Track */
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, 0, false);
+  ctx.lineWidth = 14; ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.stroke();
+
+  /* Fill + glow */
+  ctx.save();
+  ctx.shadowBlur = 14; ctx.shadowColor = color;
+  const fp  = Math.max(0, Math.min(1, (score - 300) / 600));
+  const end = Math.PI * (1 + fp);
+  const grad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
+  grad.addColorStop(0,    '#ef4444');
+  grad.addColorStop(0.33, '#f59e0b');
+  grad.addColorStop(0.66, '#10b981');
+  grad.addColorStop(1,    '#38bdf8');
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, end, false);
+  ctx.lineWidth = 14; ctx.lineCap = 'round'; ctx.strokeStyle = grad;
+  ctx.stroke();
+  ctx.restore();
+
+  /* Needle dot */
+  const angle = Math.PI * (1 + fp);
+  ctx.beginPath();
+  ctx.arc(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.shadowBlur = 10; ctx.shadowColor = color;
+  ctx.fill(); ctx.shadowBlur = 0;
+}
+
+/* ══════════════════════════════════════════
+   SCORE CALCULATOR — Initialise dropdowns
+══════════════════════════════════════════ */
+function initCalcTab() {
+  /* Populate month dropdowns */
+  ['dailyMonth', 'monthlyMonth'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel || sel.options.length > 0) return; /* already populated */
+    MNAMES.forEach((name, i) => {
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = name;
+      sel.appendChild(opt);
+    });
+    /* Default to current month */
+    sel.value = new Date().getMonth();
+  });
+
+  /* Wire dailyMonth → rebuild day dropdown */
+  const dm = document.getElementById('dailyMonth');
+  dm.addEventListener('change', populateDailyDays);
+  populateDailyDays();
+}
+
+function populateDailyDays() {
+  const m   = parseInt(document.getElementById('dailyMonth').value);
+  const sel = document.getElementById('dailyDay');
+  const prev = parseInt(sel.value) || 1;
+  sel.innerHTML = '';
+  const days = daysInMonth(activeYear, m);
+  for (let d = 1; d <= days; d++) {
+    const opt = document.createElement('option');
+    opt.value = d; opt.textContent = d;
+    sel.appendChild(opt);
+  }
+  /* Try to restore previous day value */
+  sel.value = Math.min(prev, days);
+}
+
+/* ══════════════════════════════════════════
+   DAILY CREDIT SCORE CALCULATOR
+   Score = based solely on ONE day's record.
+   Formula mirrors the yearly one but for 1 day:
+     S = sav / inc  (savings ratio)
+     C = 1 - exp/inc (expense control)
+     H = 1 if has savings, 0 otherwise (habit flag)
+   score = 300 + 600 * (0.4S + 0.4C + 0.2H)
+══════════════════════════════════════════ */
+function calcDailyScore() {
+  const m   = parseInt(document.getElementById('dailyMonth').value);
+  const d   = parseInt(document.getElementById('dailyDay').value);
+  const rec = getRec(activeYear, m, d);
+
+  const resultEl = document.getElementById('dailyResult');
+  const emptyEl  = document.getElementById('dailyEmpty');
+
+  if (!rec) {
+    /* No data logged for that day */
+    resultEl.classList.add('hidden');
+    emptyEl.classList.remove('hidden');
+    emptyEl.innerHTML = `
+      <div class="calc-empty-icon">❌</div>
+      <div><strong>${MNAMES[m]} ${d}</strong> has no data.<br>
+      Click that day on the Calendar tab to log it first.</div>`;
+    showToast(`⚠️ No data for ${MNAMES[m]} ${d}.`);
+    return;
+  }
+
+  const inc = (rec.pocketMoney || 0) + (rec.relatives || 0) + (rec.work || 0);
+  const exp = (rec.snacks     || 0) + (rec.recharge  || 0) + (rec.trips || 0);
+  const sav = (rec.savPocket  || 0) + (rec.savRelatives || 0);
+  const we  =  rec.isWeekend;
+
+  const S = inc > 0 ? Math.min(sav / inc, 1) : 0;
+  const C = inc > 0 ? Math.max(1 - exp / inc, 0) : (exp === 0 ? 1 : 0);
+  const H = sav > 0 ? 1 : 0;
+  const score = Math.round(300 + 600 * (0.4 * S + 0.4 * C + 0.2 * H));
+  const color = scoreColor(score);
+  const label = scoreLabel(score);
+
+  /* Show result, hide empty */
+  emptyEl.classList.add('hidden');
+  resultEl.classList.remove('hidden');
+
+  /* Draw mini gauge */
+  drawMiniGauge('dailyGauge', score, color);
+
+  /* Score number */
+  const numEl = document.getElementById('dailyScoreNum');
+  numEl.style.color = color;
+  countUp(numEl, score, 900);
+  const lblEl = document.getElementById('dailyScoreLbl');
+  lblEl.textContent = label; lblEl.style.color = color;
+
+  /* Breakdown bars */
+  setTimeout(() => { document.getElementById('dBSav').style.width = (S * 100) + '%'; }, 100);
+  setTimeout(() => { document.getElementById('dBCtl').style.width = (C * 100) + '%'; }, 200);
+  setTimeout(() => { document.getElementById('dBHbt').style.width = (H * 100) + '%'; }, 300);
+  document.getElementById('dNSav').textContent = pct(S);
+  document.getElementById('dNCtl').textContent = pct(C);
+  document.getElementById('dNHbt').textContent = H === 1 ? '✓' : '✗';
+  document.getElementById('dNHbt').style.color = H === 1 ? 'var(--good)' : 'var(--poor)';
+
+  /* Status info box */
+  const dayName = DNAMES[dow(activeYear, m, d)];
+  let statusTxt = '', statusColor = 'var(--muted)';
+  if (sav > 0 && exp <= inc) { statusTxt = '✅ Saved today! Great habit.';         statusColor = 'var(--good)'; }
+  else if (exp > inc && inc > 0) { statusTxt = '⚠️ Overspent today.';             statusColor = 'var(--poor)'; }
+  else if (we) { statusTxt = '🏖️ Weekend day — pocket money excluded.';           statusColor = 'var(--weekend)'; }
+  else { statusTxt = '😐 Balanced day — try saving something next time.';          statusColor = 'var(--avg)'; }
+
+  document.getElementById('dailyInfoBox').innerHTML = `
+    <strong>${dayName}, ${MNAMES[m]} ${d}, ${activeYear}</strong><br>
+    💰 Income: <strong>₹${fmt(inc)}</strong> &nbsp;
+    💸 Expenses: <strong>₹${fmt(exp)}</strong> &nbsp;
+    🏦 Saved: <strong>₹${fmt(sav)}</strong>
+    ${we ? '<br><span style="color:var(--weekend);font-size:.73rem;">🏖️ Weekend — pocket money not counted</span>' : ''}
+    <div class="ci-status" style="color:${statusColor}">${statusTxt}</div>
+  `;
+
+  showToast(`📅 ${MNAMES[m]} ${d} → Score: ${score}`);
+}
+
+/* ══════════════════════════════════════════
+   MONTHLY CREDIT SCORE CALCULATOR
+   Score = aggregate of ALL logged days in month.
+   Uses same formula as yearly sidebar:
+     S = totalSav / totalInc
+     C = 1 - totalExp / totalInc
+     D = savDays / logged
+   score = 300 + 600 * (0.4S + 0.4C + 0.2D)
+══════════════════════════════════════════ */
+function calcMonthlyScore() {
+  const m    = parseInt(document.getElementById('monthlyMonth').value);
+  const days = daysInMonth(activeYear, m);
+
+  const resultEl = document.getElementById('monthlyResult');
+  const emptyEl  = document.getElementById('monthlyEmpty');
+
+  /* Aggregate all logged days in the month */
+  let mInc = 0, mExp = 0, mSav = 0;
+  let logged = 0, savDays = 0, overDays = 0, weDays = 0;
+  const dailBreakdown = []; /* per-day rows for the tally */
+
+  for (let d = 1; d <= days; d++) {
+    const rec = getRec(activeYear, m, d);
+    if (!rec) continue;
+    const inc = (rec.pocketMoney || 0) + (rec.relatives || 0) + (rec.work || 0);
+    const exp = (rec.snacks     || 0) + (rec.recharge  || 0) + (rec.trips || 0);
+    const sav = (rec.savPocket  || 0) + (rec.savRelatives || 0);
+    mInc += inc; mExp += exp; mSav += sav; logged++;
+    if (sav > 0) savDays++;
+    if (exp > inc && inc > 0) overDays++;
+    if (rec.isWeekend) weDays++;
+    dailBreakdown.push({ d, inc, exp, sav, we: rec.isWeekend });
+  }
+
+  if (logged === 0) {
+    resultEl.classList.add('hidden');
+    emptyEl.classList.remove('hidden');
+    emptyEl.innerHTML = `
+      <div class="calc-empty-icon">❌</div>
+      <div><strong>${MNAMES[m]}</strong> has no logged days.<br>
+      Go to Calendar and log some days first!</div>`;
+    showToast(`⚠️ No data for ${MNAMES[m]}.`);
+    return;
+  }
+
+  const S = mInc > 0 ? Math.min(mSav / mInc, 1) : 0;
+  const C = mInc > 0 ? Math.max(1 - mExp / mInc, 0) : 0;
+  const D = logged  > 0 ? savDays / logged : 0;
+  const score = Math.round(300 + 600 * (0.4 * S + 0.4 * C + 0.2 * D));
+  const color = scoreColor(score);
+  const label = scoreLabel(score);
+
+  /* Show result */
+  emptyEl.classList.add('hidden');
+  resultEl.classList.remove('hidden');
+
+  /* Mini gauge */
+  drawMiniGauge('monthlyGauge', score, color);
+
+  const numEl = document.getElementById('monthlyScoreNum');
+  numEl.style.color = color;
+  countUp(numEl, score, 900);
+  const lblEl = document.getElementById('monthlyScoreLbl');
+  lblEl.textContent = label; lblEl.style.color = color;
+
+  /* Breakdown bars */
+  setTimeout(() => { document.getElementById('mBSav').style.width = (S * 100) + '%'; }, 100);
+  setTimeout(() => { document.getElementById('mBCtl').style.width = (C * 100) + '%'; }, 200);
+  setTimeout(() => { document.getElementById('mBDsc').style.width = (D * 100) + '%'; }, 300);
+  document.getElementById('mNSav').textContent = pct(S);
+  document.getElementById('mNCtl').textContent = pct(C);
+  document.getElementById('mNDsc').textContent = pct(D);
+
+  /* Day tally pills */
+  const tally = document.getElementById('monthlyTally');
+  tally.innerHTML = `
+    <span class="cm-pill b">📅 ${logged}/${days} days logged</span>
+    <span class="cm-pill g">🏦 ₹${fmt(mSav)} saved</span>
+    <span class="cm-pill a">💸 ₹${fmt(mExp)} spent</span>
+    <span class="cm-pill p">💰 ₹${fmt(mInc)} income</span>
+    ${savDays  > 0 ? `<span class="cm-pill g">✅ ${savDays} saving days</span>`    : ''}
+    ${overDays > 0 ? `<span class="cm-pill r">⚠️ ${overDays} overspent</span>`     : ''}
+    ${weDays   > 0 ? `<span class="cm-pill o">🏖️ ${weDays} weekends</span>`       : ''}
+  `;
+
+  /* Info box */
+  let advice = '';
+  if (score >= 700)      advice = '🚀 Excellent month! Keep this pace.';
+  else if (score >= 500) advice = '👍 Good effort — try to save more consistently.';
+  else                   advice = '💡 Focus on reducing expenses and saving daily.';
+
+  document.getElementById('monthlyInfoBox').innerHTML = `
+    <strong>${MNAMES[m]} ${activeYear}</strong> — ${days} total days<br>
+    Savings rate: <strong style="color:var(--good)">${pct(S)}</strong> &nbsp;
+    Expense rate: <strong style="color:var(--avg)">${pct(Math.min(mInc > 0 ? mExp/mInc : 0, 1))}</strong> &nbsp;
+    Discipline: <strong style="color:var(--purple)">${pct(D)}</strong>
+    <div class="ci-status" style="color:${color}">${advice}</div>
+  `;
+
+  showToast(`🗓 ${MNAMES[m]} → Monthly Score: ${score}`);
+}

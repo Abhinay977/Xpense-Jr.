@@ -227,100 +227,32 @@
 
   <!-- ── Main Tabs ── -->
   <div class="main-tabs">
-    <button class="mtab active" id="tab-cal"      onclick="switchTab('cal')">🗓 Calendar</button>
-    <button class="mtab"        id="tab-history"  onclick="switchTab('history')">📋 Transaction History</button>
-    <button class="mtab"        id="tab-analysis" onclick="switchTab('analysis')">📊 Monthly Analysis</button>
+    <button class="mtab active" id="tab-cal"        onclick="switchTab('cal')">🗓 Calendar</button>
+    <button class="mtab"        id="tab-history"    onclick="switchTab('history')">📋 Transaction History</button>
+    <button class="mtab"        id="tab-analysis"   onclick="switchTab('analysis')">📊 Monthly Analysis</button>
+    <button class="mtab"        id="tab-calculator" onclick="switchTab('calculator')">🧮 Score Calculator</button>
   </div>
 
   <!-- ════ TAB 1: CALENDAR ════ -->
   <div class="tab-pane show" id="tp-cal">
-    <div class="main-layout">
-
-      <!-- 12-Month Calendar Grid -->
-      <div>
-        <div class="cal-grid" id="calGrid"></div>
+    <!-- Hidden elements kept for JS compatibility -->
+    <div style="display:none;">
+      <canvas id="gaugeC" width="220" height="126"></canvas>
+      <div id="gNum"></div>
+      <div id="gLbl"></div>
+      <div id="rThumb"></div>
+      <div id="bSav"></div><div id="bCtl"></div><div id="bDsc"></div>
+      <div id="nSav"></div><div id="nCtl"></div><div id="nDsc"></div>
+      <div id="bdgRow">
+        <div id="bdg-saver"></div><div id="bdg-ctrl"></div>
+        <div id="bdg-disc"></div><div id="bdg-elite"></div><div id="bdg-full"></div>
       </div>
-
-      <!-- Auto Credit Score Sidebar -->
-      <div class="score-sidebar">
-        <div class="card">
-          <div class="score-header-lbl" style="margin-bottom:14px;">Your Credit Score</div>
-          <div class="score-panel-inner">
-
-            <!-- Placeholder before first data entry -->
-            <div class="score-ph" id="scorePh">
-              <div class="ph-icon">📊</div>
-              <p style="font-size:.84rem;line-height:1.7;">
-                Log your first day —<br>then refresh your score!
-              </p>
-            </div>
-
-            <!-- Score output (hidden until data exists) -->
-            <div id="scoreOut" class="hidden" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;">
-              <!-- Gauge canvas -->
-              <div class="gauge-wrap">
-                <canvas id="gaugeC" width="220" height="126"></canvas>
-                <div class="gauge-center">
-                  <div class="gauge-num" id="gNum">—</div>
-                  <div class="gauge-lbl" id="gLbl">—</div>
-                </div>
-              </div>
-
-              <!-- Range bar -->
-              <div class="range-track">
-                <div class="range-thumb" id="rThumb"></div>
-              </div>
-              <div class="range-labels">
-                <span style="color:var(--poor)">300</span>
-                <span style="color:var(--avg)">500</span>
-                <span style="color:var(--good)">700</span>
-                <span style="color:#38bdf8">900</span>
-              </div>
-
-              <!-- Score breakdown bars -->
-              <div class="breakdown">
-                <h4>Score Breakdown</h4>
-                <div class="bar-row">
-                  <span class="bar-name">💰 Savings</span>
-                  <div class="bar-track"><div class="bar-fill" id="bSav" style="background:var(--good)"></div></div>
-                  <span class="bar-num" id="nSav" style="color:var(--good)">—</span>
-                </div>
-                <div class="bar-row">
-                  <span class="bar-name">🎛 Control</span>
-                  <div class="bar-track"><div class="bar-fill" id="bCtl" style="background:var(--accent)"></div></div>
-                  <span class="bar-num" id="nCtl" style="color:var(--accent)">—</span>
-                </div>
-                <div class="bar-row">
-                  <span class="bar-name">📅 Discipline</span>
-                  <div class="bar-track"><div class="bar-fill" id="bDsc" style="background:var(--purple)"></div></div>
-                  <span class="bar-num" id="nDsc" style="color:var(--purple)">—</span>
-                </div>
-              </div>
-
-              <!-- Achievement badges -->
-              <div class="badges-row" id="bdgRow">
-                <div class="badge" id="bdg-saver"  style="--bc:#10b981">🌱 Saver</div>
-                <div class="badge" id="bdg-ctrl"   style="--bc:#3b82f6">🎛 Master</div>
-                <div class="badge" id="bdg-disc"   style="--bc:#8b5cf6">📅 Steady</div>
-                <div class="badge" id="bdg-elite"  style="--bc:#f59e0b">⭐ Elite</div>
-                <div class="badge" id="bdg-full"   style="--bc:#06b6d4">📆 Full Yr</div>
-              </div>
-
-              <!-- Score info line -->
-              <div style="font-size:.7rem;color:var(--muted);text-align:center;line-height:1.6;" id="scoreInfoLbl"></div>
-              
-            </div>
-            </div>
-
-          </div>
-          
-          <!-- Refresh button matching screenshot (ALWAYS VISIBLE) -->
-          <button onclick="checkRefreshScore()" style="width: 100%; display: block; padding: 12px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.4); color: #60a5fa; border-radius: 100px; font-size: 0.8rem; font-weight: 700; margin-top: 20px; cursor: pointer; text-align: center; font-family: inherit;">
-            🔄 Refresh Credit Score
-          </button>
-        </div>
-      </div>
+      <div id="scorePh"></div>
+      <div id="scoreOut"></div>
+      <div id="scoreInfoLbl"></div>
     </div>
+    <!-- 12-Month Calendar Grid (full width) -->
+    <div class="cal-grid" id="calGrid"></div>
   </div>
 
   <!-- ════ TAB 2: TRANSACTION HISTORY ════ -->
@@ -360,6 +292,144 @@
   <!-- ════ TAB 3: MONTHLY ANALYSIS ════ -->
   <div class="tab-pane" id="tp-analysis">
     <div class="analysis-grid" id="analysisGrid"></div>
+  </div>
+
+  <!-- ════ TAB 4: SCORE CALCULATOR ════ -->
+  <div class="tab-pane" id="tp-calculator">
+    <div class="calc-hero">
+      <div class="calc-hero-badge">✦ Instant · Accurate · Student-Grade</div>
+      <h2 class="calc-hero-title">Credit Score <span class="gb">Calculator</span></h2>
+      <p class="calc-hero-sub">Pick a day or a month to instantly see your credit score for that period.</p>
+    </div>
+
+    <div class="calc-dual-grid">
+
+      <!-- ─── DAILY CALCULATOR ─── -->
+      <div class="calc-card" id="dailyCalcCard">
+        <div class="calc-card-header">
+          <div class="calc-card-icon daily-icon">📅</div>
+          <div>
+            <div class="calc-card-title">Daily Score</div>
+            <div class="calc-card-sub">Score for a single day</div>
+          </div>
+          <div class="calc-live-dot"></div>
+        </div>
+
+        <div class="calc-selectors">
+          <div class="calc-sel-group">
+            <label class="calc-sel-label">Month</label>
+            <select class="calc-sel" id="dailyMonth"></select>
+          </div>
+          <div class="calc-sel-group">
+            <label class="calc-sel-label">Day</label>
+            <select class="calc-sel" id="dailyDay"></select>
+          </div>
+        </div>
+
+        <button class="calc-btn daily-btn" id="calcDailyBtn" onclick="calcDailyScore()">
+          ⚡ Calculate Day Score
+        </button>
+
+        <!-- Result area -->
+        <div class="calc-result hidden" id="dailyResult">
+          <div class="calc-gauge-mini">
+            <canvas id="dailyGauge" width="200" height="114"></canvas>
+            <div class="calc-gauge-center">
+              <div class="calc-score-num" id="dailyScoreNum">—</div>
+              <div class="calc-score-lbl" id="dailyScoreLbl">—</div>
+            </div>
+          </div>
+
+          <div class="calc-breakdown">
+            <div class="calc-brow">
+              <span class="calc-bname">💰 Savings</span>
+              <div class="calc-btrack"><div class="calc-bfill" id="dBSav" style="background:var(--good)"></div></div>
+              <span class="calc-bval" id="dNSav">—</span>
+            </div>
+            <div class="calc-brow">
+              <span class="calc-bname">🎛 Control</span>
+              <div class="calc-btrack"><div class="calc-bfill" id="dBCtl" style="background:var(--accent)"></div></div>
+              <span class="calc-bval" id="dNCtl">—</span>
+            </div>
+            <div class="calc-brow">
+              <span class="calc-bname">📅 Habit</span>
+              <div class="calc-btrack"><div class="calc-bfill" id="dBHbt" style="background:var(--purple)"></div></div>
+              <span class="calc-bval" id="dNHbt">—</span>
+            </div>
+          </div>
+
+          <div class="calc-info-box" id="dailyInfoBox"></div>
+        </div>
+
+        <div class="calc-empty" id="dailyEmpty">
+          <div class="calc-empty-icon">📅</div>
+          <div>Select a month &amp; day above,<br>then tap Calculate.</div>
+        </div>
+      </div>
+
+      <!-- ─── MONTHLY CALCULATOR ─── -->
+      <div class="calc-card" id="monthlyCalcCard">
+        <div class="calc-card-header">
+          <div class="calc-card-icon monthly-icon">🗓</div>
+          <div>
+            <div class="calc-card-title">Monthly Score</div>
+            <div class="calc-card-sub">Score across all days of a month</div>
+          </div>
+          <div class="calc-live-dot monthly-dot"></div>
+        </div>
+
+        <div class="calc-selectors">
+          <div class="calc-sel-group" style="flex:1">
+            <label class="calc-sel-label">Month</label>
+            <select class="calc-sel" id="monthlyMonth"></select>
+          </div>
+        </div>
+
+        <button class="calc-btn monthly-btn" id="calcMonthlyBtn" onclick="calcMonthlyScore()">
+          ⚡ Calculate Month Score
+        </button>
+
+        <!-- Result area -->
+        <div class="calc-result hidden" id="monthlyResult">
+          <div class="calc-gauge-mini">
+            <canvas id="monthlyGauge" width="200" height="114"></canvas>
+            <div class="calc-gauge-center">
+              <div class="calc-score-num" id="monthlyScoreNum">—</div>
+              <div class="calc-score-lbl" id="monthlyScoreLbl">—</div>
+            </div>
+          </div>
+
+          <div class="calc-breakdown">
+            <div class="calc-brow">
+              <span class="calc-bname">💰 Savings</span>
+              <div class="calc-btrack"><div class="calc-bfill" id="mBSav" style="background:var(--good)"></div></div>
+              <span class="calc-bval" id="mNSav">—</span>
+            </div>
+            <div class="calc-brow">
+              <span class="calc-bname">🎛 Control</span>
+              <div class="calc-btrack"><div class="calc-bfill" id="mBCtl" style="background:var(--accent)"></div></div>
+              <span class="calc-bval" id="mNCtl">—</span>
+            </div>
+            <div class="calc-brow">
+              <span class="calc-bname">📅 Discipline</span>
+              <div class="calc-btrack"><div class="calc-bfill" id="mBDsc" style="background:var(--purple)"></div></div>
+              <span class="calc-bval" id="mNDsc">—</span>
+            </div>
+          </div>
+
+          <!-- Month day tally -->
+          <div class="calc-month-tally" id="monthlyTally"></div>
+
+          <div class="calc-info-box monthly-info" id="monthlyInfoBox"></div>
+        </div>
+
+        <div class="calc-empty" id="monthlyEmpty">
+          <div class="calc-empty-icon">🗓</div>
+          <div>Select a month above,<br>then tap Calculate.</div>
+        </div>
+      </div>
+
+    </div><!-- /.calc-dual-grid -->
   </div>
 
   <!-- ════ BOTTOM GRID: Tips · Compare · Level ════ -->
